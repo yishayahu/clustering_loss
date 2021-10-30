@@ -124,7 +124,7 @@ class Trainer(object):
 
             accs += torch.sum(preds == labels.data).item()
 
-            if (i % 10 == 1 and train_or_val == 'train') or i == len(dl) -1:
+            if (i % 100 == 99 and train_or_val == 'train') or i == len(dl) -1:
                 bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/total} iter: {i}')
                 logs = {
                     f'{train_or_val} loss': float(np.mean(losses)),
