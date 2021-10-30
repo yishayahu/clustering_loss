@@ -46,7 +46,7 @@ class Trainer(object):
         self.net.to(self.device)
 
         weights = cfg.WEIGHTS
-        self.criterion = ClusteringLoss(weights,n_clusters=8,clustering_lambda=self.cfg.CLUSTERING_LOSS_LAMBDA,device=self.device)
+        self.criterion = ClusteringLoss(weights,n_clusters=cfg.N_CLUSTERS,clustering_lambda=self.cfg.CLUSTERING_LOSS_LAMBDA,device=self.device)
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=cfg.LR)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, cfg.LR_DECAY_STEP_SIZE,
@@ -82,6 +82,8 @@ class Trainer(object):
         for k,(X,Y,C) in pred_class_to_arrs.items():
             plt.scatter(X,Y,c=C,marker=pred_class_to_shape[k])
         plt.savefig(os.path.join(self.ckpt_dir,f'{self.step}.png'))
+        plt.cla()
+        plt.clf()
 
 
 
