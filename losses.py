@@ -8,7 +8,7 @@ class ClusteringLoss:
     def __init__(self,weights,n_clusters,clustering_lambda,device):
         self.ce = nn.CrossEntropyLoss(weight=torch.tensor(weights,device=device),ignore_index=-100)
         self.kmeans  = MiniBatchKMeans(n_clusters)
-
+        self.device = device
         self.clustering_lambda = clustering_lambda
         self.cache = []
     def __call__(self, features,outputs, labels):
@@ -21,14 +21,14 @@ class ClusteringLoss:
         unlabeled_features = features[labels==-100]
 
         if labeled_features.numel() != 0:
-            self.cache.append(labeled_features.detach().numpy())
+            self.cache.append(labeled_features.detach().cpu().numpy())
             if len(self.cache) > 30:
                 self.kmeans.partial_fit(np.concatenate(self.cache))
                 self.cache = []
         if unlabeled_features.numel() != 0:
-            clusters = self.kmeans.predict(unlabeled_features.detach().numpy())
+            clusters = self.kmeans.predict(unlabeled_features.detach().cpu().numpy())
             for i_vec in range(unlabeled_features.shape[0]):
                 curr_cluster = self.kmeans.cluster_centers_[clusters[i_vec]]
-                l2 += torch.cdist(unlabeled_features[i_vec].unsqueeze(0),torch.tensor(curr_cluster).unsqueeze(0))
+                l2 += torch.cdist(unlabeled_features[i_vec].unsqueeze(0),torch.tensor(curr_cluster,device=self.device).unsqueeze(0))
             l2 /= unlabeled_features.shape[0]
         return l1+ self.clustering_lambda * l2

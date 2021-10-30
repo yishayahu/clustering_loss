@@ -38,7 +38,7 @@ class Trainer(object):
 
         t = transforms.Compose([transforms.ToTensor(),transforms.Resize(299),transforms.CenterCrop(256),transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
         self.labeled_ds,self.semi_labels_ds = datasets_creator(data_dir=os.path.join(self.images_dir,'train'),transform=t)
-        val_ds = ImageFolder(root=os.path.join(self.images_dir,'test'),transform=t)
+        val_ds = ImageFolder(root=os.path.join(self.images_dir,'val'),transform=t)
         self.train_loader = DataLoader(self.labeled_ds, batch_size=cfg.BATCH_SIZE, shuffle=True,drop_last=True)
         self.val_loader = DataLoader(val_ds, batch_size=cfg.BATCH_SIZE, shuffle=False)
 
@@ -155,8 +155,8 @@ class Trainer(object):
             if epoch_acc_val > best_acc:
                 best_acc = epoch_acc_val
 
-                torch.save({'unet': self.net.state_dict(), 'encoder': self.net.encoder.state_dict()},
-                           os.path.join(self.ckpt_dir, 'unet_best_val_dice.pt'))
+                torch.save({'net': self.net.state_dict()},
+                           os.path.join(self.ckpt_dir, 'best_val.pt'))
                 torch.save({'optimizer': self.optimizer.state_dict()}, os.path.join(self.ckpt_dir, 'optimizer.pt'))
 
 
