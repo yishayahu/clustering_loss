@@ -105,7 +105,7 @@ class Trainer(object):
 
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
-            total += inputs.size(0)
+            total += labels[labels!=-100].size(0)
 
 
             with torch.set_grad_enabled(train_or_val == 'train'):
@@ -124,7 +124,7 @@ class Trainer(object):
 
             losses.append(loss.item())
 
-            accs += torch.sum(preds == labels.data).item()
+            accs += torch.sum(preds[labels!=-100] == labels[labels!=-100]).item()
 
             if (i % 100 == 99 and train_or_val == 'train') or i == len(dl) -1:
                 bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/total} iter: {i}')

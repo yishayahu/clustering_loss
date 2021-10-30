@@ -22,13 +22,13 @@ class ClusteringLoss:
 
         if labeled_features.numel() != 0:
             self.cache.append(labeled_features.detach().cpu().numpy())
-            if len(self.cache) > 30:
+            if len(self.cache) > 50:
                 self.kmeans.partial_fit(np.concatenate(self.cache))
                 self.cache = []
         if unlabeled_features.numel() != 0:
             clusters = self.kmeans.predict(unlabeled_features.detach().cpu().numpy())
             for i_vec in range(unlabeled_features.shape[0]):
                 curr_cluster = self.kmeans.cluster_centers_[clusters[i_vec]]
-                l2 += torch.cdist(unlabeled_features[i_vec].unsqueeze(0),torch.tensor(curr_cluster,device=self.device).unsqueeze(0))
+                l2 += torch.sqrt(torch.cdist(unlabeled_features[i_vec].unsqueeze(0),torch.tensor(curr_cluster,device=self.device).unsqueeze(0)))
             l2 /= unlabeled_features.shape[0]
         return l1+ self.clustering_lambda * l2
