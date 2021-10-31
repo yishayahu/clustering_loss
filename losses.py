@@ -12,7 +12,7 @@ class ClusteringLoss:
         self.device = device
         self.clustering_lambda = clustering_lambda
         self.cache = []
-        self.tsne_params = TSNE(n_components=2, learning_rate='auto',init='random')
+        self.tsne_params = TSNE(n_components=5, learning_rate='auto',init='random')
         self.use_tsne = use_tsne
     def __call__(self, features,outputs, labels):
 
