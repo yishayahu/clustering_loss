@@ -34,7 +34,7 @@ class Trainer(object):
         self.ckpt_dir = os.path.join(self.cfg.RES_DIR,exp_name)
         os.makedirs(self.ckpt_dir,exist_ok=True)
         shutil.copyfile('config.yml',os.path.join(self.ckpt_dir,'config.yml'))
-        self.l1 = [0.1,0.25,0.33,0.5,0.66,0.8,1,1.4,2,2.5,4,6,8]
+        self.l1 = [0.1,0.25,0.33,0.5,0.66,0.8,1,1.4,2,2.5,4,6,8,8,8,8,8,8,8]
 
         t = transforms.Compose([transforms.ToTensor(),transforms.Resize(299),transforms.CenterCrop(256),transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
         self.labeled_ds,self.semi_labels_ds = datasets_creator(data_dir=os.path.join(self.images_dir,'train'),transform=t)
@@ -159,6 +159,7 @@ class Trainer(object):
                 labeled_indexes = self.labeled_ds.indices
 
                 unlabeled_indexes = list(set(list(range(len(self.semi_labels_ds)))) - set(labeled_indexes))
+
                 next_p = self.l1.pop(0)
 
                 ds = torch.utils.data.Subset(self.semi_labels_ds,np.concatenate([np.random.choice(unlabeled_indexes,int(len(labeled_indexes) * next_p) , replace=False), labeled_indexes]))

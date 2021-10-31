@@ -12,7 +12,7 @@ class ClusteringLoss:
         self.device = device
         self.clustering_lambda = clustering_lambda
         self.cache = []
-        self.tsne_params = TSNE(n_components=5, learning_rate='auto',init='random')
+        self.tsne_params = TSNE(n_components=3, learning_rate='auto',init='random')
         self.use_tsne = use_tsne
     def __call__(self, features,outputs, labels):
 
@@ -36,8 +36,8 @@ class ClusteringLoss:
             if self.use_tsne:
                 x = self.tsne_params.fit_transform(x)
             clusters = self.kmeans.predict(x)
-            for i_vec in range(unlabeled_features.shape[0]):
+            for i_vec in range(x.shape[0]):
                 curr_cluster = self.kmeans.cluster_centers_[clusters[i_vec]]
-                l2 += torch.sqrt(torch.cdist(unlabeled_features[i_vec].unsqueeze(0),torch.tensor(curr_cluster,device=self.device).unsqueeze(0)))
-            l2 /= unlabeled_features.shape[0]
+                l2 += torch.sqrt(torch.cdist(torch.tensor(x[i_vec],device=self.device).unsqueeze(0),torch.tensor(curr_cluster,device=self.device).unsqueeze(0)))
+            l2 /= x.shape[0]
         return l1+ self.clustering_lambda * l2
