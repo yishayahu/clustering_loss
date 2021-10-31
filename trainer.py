@@ -114,7 +114,7 @@ class Trainer(object):
 
             with torch.set_grad_enabled(train_or_val == 'train'):
                 outputs,features = self.net(inputs)
-                if type(dl.dataset) == SemiCT:
+                if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
                     dl.dataset.doc(features,outputs)
 
 
@@ -138,7 +138,7 @@ class Trainer(object):
                     f'labeled_p': labeled_count / (labeled_count+unlabeled_count)
                 }
                 wandb.log(logs,step=self.step)
-                if type(dl.dataset) == SemiCT:
+                if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
                     self.visualize(dl.dataset)
 
 
@@ -156,6 +156,7 @@ class Trainer(object):
             print('-' * 10)
             if self.cfg.CLUSTERING_LOSS_LAMBDA > 0 and epoch >= self.cfg.WARMUP_EPOCHS:
                 labeled_indexes = self.labeled_ds.indices
+
                 unlabeled_indexes = list(set(list(range(len(self.semi_labels_ds)))) - set(labeled_indexes))
                 next_p = self.l1.pop(0)
 
