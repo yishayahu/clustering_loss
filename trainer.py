@@ -83,7 +83,7 @@ class Trainer(object):
             plt.scatter(X,Y,c=C,marker=pred_class_to_shape[k])
         im_path = os.path.join(self.ckpt_dir,f'{self.step}.png')
         plt.savefig(im_path)
-        wandb.log({'vis':wandb.Image(im_path)})
+        wandb.log({'vis':wandb.Image(im_path)},step=self.step)
         plt.cla()
         plt.clf()
 
@@ -97,22 +97,22 @@ class Trainer(object):
         labeled_count = 0
         unlabeled_count = 0
         accs = 0
+        with torch.set_grad_enabled(train_or_val == 'train'):
+            for i, (inputs,labels) in bar:
+                if train_or_val == 'train':
+                    self.net.train()  # Set model to training mode
+                    self.optimizer.zero_grad()
+                else:
+                    self.net.eval()
 
-        for i, (inputs,labels) in bar:
-            if train_or_val == 'train':
-                self.net.train()  # Set model to training mode
-                self.optimizer.zero_grad()
-            else:
-                self.net.eval()
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
 
-            inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
-
-            labeled_count += labels[labels!=-100].size(0)
-            unlabeled_count += labels[labels==-100].size(0)
+                labeled_count += labels[labels!=-100].size(0)
+                unlabeled_count += labels[labels==-100].size(0)
 
 
-            with torch.set_grad_enabled(train_or_val == 'train'):
+
                 outputs,features = self.net(inputs)
                 if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
                     dl.dataset.dataset.doc(features,outputs)
@@ -121,25 +121,26 @@ class Trainer(object):
                 _, preds = torch.max(outputs, 1)
 
                 loss = self.criterion(features,outputs, labels)
+
+
+                losses.append(loss.item())
+
+                accs += torch.sum(preds[labels!=-100] == labels[labels!=-100]).item()
+
+                if (i % 100 == 99 and train_or_val == 'train') or i == len(dl) -1:
+                    bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/labeled_count} iter: {i}')
+                    logs = {
+                        f'{train_or_val} loss': float(np.mean(losses)),
+                        f'{train_or_val} accuracy': float(accs/labeled_count),
+                        f'{train_or_val} labeled_p': labeled_count / (labeled_count+unlabeled_count)
+                    }
+                    wandb.log(logs,step=self.step)
+                    if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
+                        self.visualize(dl.dataset.dataset)
                 if train_or_val == 'train':
                     loss.backward()
                     self.optimizer.step()
                     self.step+=1
-
-            losses.append(loss.item())
-
-            accs += torch.sum(preds[labels!=-100] == labels[labels!=-100]).item()
-
-            if (i % 100 == 99 and train_or_val == 'train') or i == len(dl) -1:
-                bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/labeled_count} iter: {i}')
-                logs = {
-                    f'{train_or_val} loss': float(np.mean(losses)),
-                    f'{train_or_val} accuracy': float(accs/labeled_count),
-                    f'{train_or_val} labeled_p': labeled_count / (labeled_count+unlabeled_count)
-                }
-                wandb.log(logs,step=self.step)
-                if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
-                    self.visualize(dl.dataset.dataset)
 
 
         if train_or_val == 'train':
