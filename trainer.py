@@ -115,7 +115,7 @@ class Trainer(object):
             with torch.set_grad_enabled(train_or_val == 'train'):
                 outputs,features = self.net(inputs)
                 if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
-                    dl.dataset.doc(features,outputs)
+                    dl.dataset.dataset.doc(features,outputs)
 
 
                 _, preds = torch.max(outputs, 1)
@@ -135,11 +135,11 @@ class Trainer(object):
                 logs = {
                     f'{train_or_val} loss': float(np.mean(losses)),
                     f'{train_or_val} accuracy': float(accs/labeled_count),
-                    f'labeled_p': labeled_count / (labeled_count+unlabeled_count)
+                    f'{train_or_val} labeled_p': labeled_count / (labeled_count+unlabeled_count)
                 }
                 wandb.log(logs,step=self.step)
                 if type(dl.dataset) == torch.utils.data.Subset and type(dl.dataset.dataset) == SemiCT:
-                    self.visualize(dl.dataset)
+                    self.visualize(dl.dataset.dataset)
 
 
         if train_or_val == 'train':
