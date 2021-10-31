@@ -46,7 +46,7 @@ class Trainer(object):
         self.net.to(self.device)
 
         weights = cfg.WEIGHTS
-        self.criterion = ClusteringLoss(weights,n_clusters=cfg.N_CLUSTERS,clustering_lambda=self.cfg.CLUSTERING_LOSS_LAMBDA,device=self.device)
+        self.criterion = ClusteringLoss(weights,n_clusters=cfg.N_CLUSTERS,clustering_lambda=self.cfg.CLUSTERING_LOSS_LAMBDA,device=self.device,use_tsne=self.cfg.TSNE_BEFORE_CLUSTERING)
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=cfg.LR)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, cfg.LR_DECAY_STEP_SIZE,
@@ -61,7 +61,7 @@ class Trainer(object):
 
     def visualize(self,ds):
         f= np.concatenate(ds.features)
-        out = TSNE(n_components=2, learning_rate='auto',init='random').fit_transform(np.concatenate([f,self.criterion.kmeans.cluster_centers_]))
+        out = self.criterion.tsne_params.fit_transform(np.concatenate([f,self.criterion.kmeans.cluster_centers_]))
         pred_class_to_shape = {0:'.',1:'^',2:'P',3:'*',4:'x'}
         pred_class_to_arrs = {0:([],[],[]),1:([],[],[]),2:([],[],[]),3:([],[],[]),4:([],[],[])}
         for i in range(out.shape[0]):
