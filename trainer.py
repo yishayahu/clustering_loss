@@ -34,7 +34,7 @@ class Trainer(object):
         self.ckpt_dir = os.path.join(self.cfg.RES_DIR,exp_name)
         os.makedirs(self.ckpt_dir,exist_ok=True)
         shutil.copyfile('config.yml',os.path.join(self.ckpt_dir,'config.yml'))
-
+        self.l1 = [0.1,0.25,0.33,0.5,0.66,0.8,1,1.4,2,2.5,4,6,8]
 
         t = transforms.Compose([transforms.ToTensor(),transforms.Resize(299),transforms.CenterCrop(256),transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
         self.labeled_ds,self.semi_labels_ds = datasets_creator(data_dir=os.path.join(self.images_dir,'train'),transform=t)
@@ -81,7 +81,9 @@ class Trainer(object):
                     C.append('green' if pred == ds.real_labels[i] else 'red')
         for k,(X,Y,C) in pred_class_to_arrs.items():
             plt.scatter(X,Y,c=C,marker=pred_class_to_shape[k])
-        plt.savefig(os.path.join(self.ckpt_dir,f'{self.step}.png'))
+        im_path = os.path.join(self.ckpt_dir,f'{self.step}.png')
+        plt.savefig(im_path)
+        wandb.log({'vis':wandb.Image(im_path)})
         plt.cla()
         plt.clf()
 
@@ -92,9 +94,9 @@ class Trainer(object):
     def run_epoch(self,dl,train_or_val):
         bar = tqdm(enumerate(dl), total=len(dl))
         losses = []
-
+        labeled_count = 0
+        unlabeled_count = 0
         accs = 0
-        total = 0
 
         for i, (inputs,labels) in bar:
             if train_or_val == 'train':
@@ -105,7 +107,9 @@ class Trainer(object):
 
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
-            total += labels[labels!=-100].size(0)
+
+            labeled_count += labels[labels!=-100].size(0)
+            unlabeled_count += labels[labels==-100].size(0)
 
 
             with torch.set_grad_enabled(train_or_val == 'train'):
@@ -127,10 +131,11 @@ class Trainer(object):
             accs += torch.sum(preds[labels!=-100] == labels[labels!=-100]).item()
 
             if (i % 100 == 99 and train_or_val == 'train') or i == len(dl) -1:
-                bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/total} iter: {i}')
+                bar.set_description(f'{train_or_val} loss: {np.mean(losses)} {train_or_val} accuracy: {accs/labeled_count} iter: {i}')
                 logs = {
                     f'{train_or_val} loss': float(np.mean(losses)),
-                    f'{train_or_val} accuracy': float(accs/total),
+                    f'{train_or_val} accuracy': float(accs/labeled_count),
+                    f'labeled_p': labeled_count / (labeled_count+unlabeled_count)
                 }
                 wandb.log(logs,step=self.step)
                 if type(dl.dataset) == SemiCT:
@@ -139,7 +144,7 @@ class Trainer(object):
 
         if train_or_val == 'train':
             self.scheduler.step()
-        return float(accs/total)
+        return float(accs/labeled_count)
 
 
     def train(self):
@@ -150,7 +155,12 @@ class Trainer(object):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
             if self.cfg.CLUSTERING_LOSS_LAMBDA > 0 and epoch == self.cfg.WARMUP_EPOCHS:
-                self.train_loader = DataLoader(self.semi_labels_ds, batch_size=self.cfg.BATCH_SIZE, shuffle=True,drop_last=True)
+                labeled_indexes = self.labeled_ds.indices
+                unlabeled_indexes = set(list(range(len(self.semi_labels_ds)))) - set(labeled_indexes)
+                next_p = self.l1.pop(0)
+
+                ds = torch.utils.data.Subset(self.semi_labels_ds,np.random.choice(unlabeled_indexes,int(len(labeled_indexes) *next_p) , replace=False) + labeled_indexes)
+                self.train_loader = DataLoader(ds, batch_size=self.cfg.BATCH_SIZE, shuffle=True,drop_last=True)
 
             self.run_epoch(self.train_loader,'train')
             epoch_acc_val = self.run_epoch(self.val_loader,'val')
