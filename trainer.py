@@ -154,12 +154,12 @@ class Trainer(object):
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
-            if self.cfg.CLUSTERING_LOSS_LAMBDA > 0 and epoch == self.cfg.WARMUP_EPOCHS:
+            if self.cfg.CLUSTERING_LOSS_LAMBDA > 0 and epoch >= self.cfg.WARMUP_EPOCHS:
                 labeled_indexes = self.labeled_ds.indices
-                unlabeled_indexes = set(list(range(len(self.semi_labels_ds)))) - set(labeled_indexes)
+                unlabeled_indexes = list(set(list(range(len(self.semi_labels_ds)))) - set(labeled_indexes))
                 next_p = self.l1.pop(0)
 
-                ds = torch.utils.data.Subset(self.semi_labels_ds,np.random.choice(unlabeled_indexes,int(len(labeled_indexes) *next_p) , replace=False) + labeled_indexes)
+                ds = torch.utils.data.Subset(self.semi_labels_ds,np.concatenate([np.random.choice(unlabeled_indexes,int(len(labeled_indexes) * next_p) , replace=False), labeled_indexes]))
                 self.train_loader = DataLoader(ds, batch_size=self.cfg.BATCH_SIZE, shuffle=True,drop_last=True)
 
             self.run_epoch(self.train_loader,'train')
