@@ -61,6 +61,8 @@ class Trainer(object):
 
     def visualize(self,ds):
         f= np.concatenate(ds.features)
+        if self.cfg.TSNE_BEFORE_CLUSTERING:
+            f = self.criterion.tsne_params.fit_transform(f)
         out = TSNE(n_components=2, learning_rate='auto',init='random').fit_transform(np.concatenate([f,self.criterion.kmeans.cluster_centers_]))
         pred_class_to_shape = {0:'.',1:'^',2:'P',3:'*',4:'x'}
         pred_class_to_arrs = {0:([],[],[]),1:([],[],[]),2:([],[],[]),3:([],[],[]),4:([],[],[])}

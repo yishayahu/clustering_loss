@@ -31,7 +31,7 @@ class ClusteringLoss:
                     x = self.tsne_params.fit_transform(x)
                 self.kmeans.partial_fit(x)
                 self.cache = []
-        if unlabeled_features.numel() != 0:
+        if unlabeled_features.shape[0] > 1:
             x= unlabeled_features.detach().cpu().numpy()
             if self.use_tsne:
                 x = self.tsne_params.fit_transform(x)
