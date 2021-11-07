@@ -1,4 +1,5 @@
 import numpy as np
+import sklearn.preprocessing
 import torch
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.manifold import TSNE
@@ -25,14 +26,16 @@ class ClusteringLoss:
         unlabeled_features = features[labels==-100]
         if labeled_features.numel() != 0:
             self.cache.append(labeled_features.detach().cpu().numpy())
-            if len(self.cache) > 200:
+            if len(self.cache) > 50:
                 x = np.concatenate(self.cache)
+                x = sklearn.preprocessing.normalize(x,norm='l2')
                 if self.use_tsne:
                     x = self.tsne_params.fit_transform(x)
                 self.kmeans.partial_fit(x)
                 self.cache = []
         if unlabeled_features.shape[0] > 1:
             x= unlabeled_features.detach().cpu().numpy()
+            x = sklearn.preprocessing.normalize(x,norm='l2')
             if self.use_tsne:
                 x = self.tsne_params.fit_transform(x)
             clusters = self.kmeans.predict(x)

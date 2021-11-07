@@ -1,5 +1,6 @@
 import shutil
 
+import sklearn
 import torch.backends.cudnn as cudnn
 import torch
 import os
@@ -61,6 +62,7 @@ class Trainer(object):
 
     def visualize(self,ds):
         f= np.concatenate(ds.features)
+        f = sklearn.preprocessing.normalize(f,norm='l2')
         if self.cfg.TSNE_BEFORE_CLUSTERING:
             f = self.criterion.tsne_params.fit_transform(f)
         out = TSNE(n_components=2, learning_rate='auto',init='random').fit_transform(np.concatenate([f,self.criterion.kmeans.cluster_centers_]))
